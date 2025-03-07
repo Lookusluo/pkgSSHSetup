@@ -7,22 +7,22 @@
 
 import Foundation
 
-// 定义所需的路径和命令
+// Define the required paths and commands
 let sshKeyPath = "\(NSHomeDirectory())/.ssh/id_ed25519.pub"
 let repoPath = "\(NSHomeDirectory())/BVVConfigs"
 let repoURL = "git@hwtegit.apple.com:BVV/BVVConfigs.git"
 let domainURL = "hwtegit.apple.com"
-// 获取当前程序的包路径
+// Get the bundle path of the current program
 let bundlePath = Bundle.main.bundlePath
 let resourcePath = (bundlePath as NSString).appendingPathComponent("Contents/Resources")
 
-// 检查必要的包是否已安装
+// Check if the necessary packages are installed
 func checkEnvironment() -> Bool {
-    // 检查 GoatCLI 是否已安装
+    // Check if GoatCLI is installed
     let goatCliPath = "/usr/local/bin/goat"
-    // 检查 Mink 是否已安装
+    // Check if Mink is installed
     let minkPath = "/usr/local/bin/mink"
-    // 检查 GitHub CLI 是否已安装
+    // Check if GitHub CLI is installed
     let ghCliPath = "/usr/local/bin/gh"
     
     let fileManager = FileManager.default
@@ -33,29 +33,29 @@ func checkEnvironment() -> Bool {
     return toolsInstalled
 }
 
-// 安装必要的包
+// Install the necessary packages
 func installPackages() {
-    print("开始安装必要的包...")
-    print("请输入管理员密码：")
+    print("Starting to install necessary packages...")
+    print("Please enter your administrator password:")
     
-    // 读取密码
-    // 使用 termios 结构体来控制终端输入模式
+    // Read the password
+    // Use the termios structure to control the terminal input mode
     var term = termios()
     tcgetattr(STDIN_FILENO, &term)
     var oldTerm = term
-    term.c_lflag &= ~UInt(ECHO)  // 禁用回显
+    term.c_lflag &= ~UInt(ECHO)  // Disable echo
     tcsetattr(STDIN_FILENO, TCSANOW, &term)
     
     guard let password = String(data: FileHandle.standardInput.availableData, encoding: .utf8)?.trimmingCharacters(in: .newlines) else {
-        // 恢复终端设置
+        // Restore the terminal settings
         tcsetattr(STDIN_FILENO, TCSANOW, &oldTerm)
-        print("无法读取密码")
+        print("Failed to read the password")
         exit(1)
     }
     
-    // 恢复终端设置
+    // Restore the terminal settings
     tcsetattr(STDIN_FILENO, TCSANOW, &oldTerm)
-    print("")  // 换行
+    print("")  // New line
     
     let packages = [
         "\(bundlePath)/GoatCLI-1.2.3-Release.pkg",
@@ -64,7 +64,7 @@ func installPackages() {
     ]
     
     for package in packages {
-        print("正在安装 \(package.components(separatedBy: "/").last ?? "")...")
+        print("Installing \(package.components(separatedBy: "/").last ?? "")...")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/bash")
         let command = "echo '\(password)' | sudo -S installer -pkg \"\(package)\" -target /"
@@ -82,12 +82,12 @@ func installPackages() {
             let output = String(data: data, encoding: .utf8) ?? ""
             
             if process.terminationStatus != 0 {
-                print("安装包过程出错：\n\(output)")
+                print("Error occurred during package installation:\n\(output)")
                 exit(1)
             }
-            print("✅ 安装成功")
+            print("✅ Installation successful")
         } catch {
-            print("安装包过程出错：\n\(error.localizedDescription)")
+            print("Error occurred during package installation:\n\(error.localizedDescription)")
             exit(1)
         }
     }
@@ -97,7 +97,7 @@ func setupSSHKey() {
     let fileManager = FileManager.default
     
     if !fileManager.fileExists(atPath: sshKeyPath) {
-        print("generating SSH key...")
+        print("Generating SSH key...")
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh-keygen")
         process.arguments = ["-t", "ed25519", "-f", sshKeyPath, "-N", ""]
@@ -117,37 +117,27 @@ func setupSSHKey() {
     }
 }
 
-// 配置 GitHub CLI 认证
+// Configure GitHub CLI authentication
 func configureGitHubCLI() {
-    print("配置 GitHub CLI...")
+    let command = "/usr/local/bin/gh auth login -h \(domainURL) -p ssh"
+    // 构造打开新终端窗口并执行命令的完整命令
+    let fullCommand = "osascript -e 'tell application \"Terminal\" to do script \"\(command); read -p \\\"Press any key to continue...\\\"\"'"
     let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
-    process.arguments = ["auth", "login", "-h", domainURL, "-p", "ssh"]
-    
-    // Set up proper terminal handling for interactive input
-    let pipe = Pipe()
-    process.standardError = pipe
-    process.standardInput = FileHandle.standardInput
-    process.standardOutput = FileHandle.standardOutput
-    
+    process.executableURL = URL(fileURLWithPath: "/bin/bash")
+    process.arguments = ["-c", fullCommand]
+
     do {
         try process.run()
         process.waitUntilExit()
-        
-        let errorData = pipe.fileHandleForReading.readDataToEndOfFile()
-        if let errorOutput = String(data: errorData, encoding: .utf8), !errorOutput.isEmpty {
-            print("GitHub CLI 配置出错：\n\(errorOutput)")
-            exit(1)
-        }
     } catch {
-        print("GitHub CLI 配置出错：\(error.localizedDescription)")
+        print("Error occurred while opening a new terminal window:\n\(error.localizedDescription)")
         exit(1)
     }
 }
 
-// 克隆仓库
+// Clone the repository
 func cloneRepository() {
-    print("克隆仓库...")
+    print("Cloning the repository...")
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
     process.arguments = ["clone", repoURL, repoPath]
@@ -155,12 +145,13 @@ func cloneRepository() {
     try? process.run()
     process.waitUntilExit()
 }
-// 主程序流程
+
+// Main program flow
 func main() {
-    print("开始环境检查...")
+    print("Starting environment check...")
     
     if checkEnvironment() {
-        print("环境已经设置完成，无需进行安装。")
+        print("The environment is already set up. No installation is required.")
     } else {
         installPackages()
     }
@@ -168,15 +159,15 @@ func main() {
     let fileManager = FileManager.default
     if !fileManager.fileExists(atPath: repoPath) {
         cloneRepository()
-        print("环境设置完成！")
+        print("Environment setup completed!")
     } else {
-        print("仓库未找到，请重新配置 GitHub CLI后重启")
+        print("Repository not found. Please reconfigure GitHub CLI and restart.")
         setupSSHKey()
         configureGitHubCLI()
     }
     
 }
 
-// 运行主程序
+// Run the main program
 main()
 
