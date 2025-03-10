@@ -175,7 +175,7 @@ func main() {
         cloneRepository()
         print("✅ Environment setup completed!")
     } else {
-        print("⚠️Repository not found. Please reconfigure GitHub CLI and restart this program.⚠️")
+        print("⚠️ Repository not found. Please reconfigure GitHub CLI and restart this program.")
         setupSSHKey()
         configureGitHubCLI()
     }
