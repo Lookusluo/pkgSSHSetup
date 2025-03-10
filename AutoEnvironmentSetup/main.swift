@@ -165,7 +165,7 @@ func main() {
     print("Starting environment check...")
     
     if checkEnvironment() {
-        print("The environment is already set up. No installation is required.")
+        print("✅ The environment is already set up. No installation is required.")
     } else {
         installPackages()
     }
@@ -173,9 +173,9 @@ func main() {
     let fileManager = FileManager.default
     if !fileManager.fileExists(atPath: repoPath) {
         cloneRepository()
-        print("Environment setup completed!")
+        print("✅ Environment setup completed!")
     } else {
-        print("Oh!Repository not found. Please reconfigure GitHub CLI and restart this program.")
+        print("⚠️Repository not found. Please reconfigure GitHub CLI and restart this program.⚠️")
         setupSSHKey()
         configureGitHubCLI()
     }
