@@ -119,31 +119,45 @@ func setupSSHKey() {
 
 // Configure GitHub CLI authentication
 func configureGitHubCLI() {
-    let command = "/usr/local/bin/gh auth login -h \(domainURL) -p ssh"
-    // 构造打开新终端窗口并执行命令的完整命令
-    let fullCommand = "osascript -e 'tell application \"Terminal\" to do script \"\(command); read -p \\\"Press any key to continue...\\\"\"'"
+    print("Configuring GitHub CLI...")
+    print("Please complete authentication in the new terminal window...")
+    
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/bin/bash")
-    process.arguments = ["-c", fullCommand]
-
-    do {
-        try process.run()
-        process.waitUntilExit()
-    } catch {
-        print("Error occurred while opening a new terminal window:\n\(error.localizedDescription)")
-        exit(1)
-    }
-}
-
-// Clone the repository
-func cloneRepository() {
-    print("Cloning the repository...")
-    let process = Process()
-    process.executableURL = URL(fileURLWithPath: "/usr/bin/git")
-    process.arguments = ["clone", repoURL, repoPath]
+    let command = """
+    osascript -e 'tell application "Terminal" to do script "gh auth login -h \(domainURL) -p https"'
+    """
+    process.arguments = ["-c", command]
     
     try? process.run()
     process.waitUntilExit()
+}
+
+func cloneRepository() {
+    print("Cloning repository...")
+    let process = Process()
+    process.executableURL = URL(fileURLWithPath: "/usr/local/bin/gh")
+    process.arguments = ["repo", "clone", repoURL, repoPath]
+    
+    let pipe = Pipe()
+    process.standardOutput = pipe
+    process.standardError = pipe
+    
+    do {
+        try process.run()
+        process.waitUntilExit()
+        
+        let data = pipe.fileHandleForReading.readDataToEndOfFile()
+        let output = String(data: data, encoding: .utf8) ?? ""
+        
+        if process.terminationStatus != 0 {
+            print("Repository clone failed:\n\(output)")
+            exit(1)
+        }
+    } catch {
+        print("Repository clone error:\n\(error.localizedDescription)")
+        exit(1)
+    }
 }
 
 // Main program flow
@@ -161,7 +175,7 @@ func main() {
         cloneRepository()
         print("Environment setup completed!")
     } else {
-        print("Repository not found. Please reconfigure GitHub CLI and restart.")
+        print("Oh!Repository not found. Please reconfigure GitHub CLI and restart this program.")
         setupSSHKey()
         configureGitHubCLI()
     }
