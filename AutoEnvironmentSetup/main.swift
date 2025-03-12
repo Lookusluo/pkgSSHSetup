@@ -93,6 +93,30 @@ func installPackages() {
     }
 }
 
+func setupSSHKey() {
+    let fileManager = FileManager.default
+    
+    if !fileManager.fileExists(atPath: sshKeyPath) {
+        print("Generating SSH key...")
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/ssh-keygen")
+        process.arguments = ["-t", "ed25519", "-f", sshKeyPath, "-N", ""]
+        
+        process.standardInput = FileHandle.standardInput
+        process.standardOutput = FileHandle.standardOutput
+        process.standardError = FileHandle.standardError
+        
+        try? process.run()
+        process.waitUntilExit()
+        
+        let sshAddProcess = Process()
+        sshAddProcess.executableURL = URL(fileURLWithPath: "/usr/bin/ssh-add")
+        sshAddProcess.arguments = [sshKeyPath.replacingOccurrences(of: ".pub", with: "")]
+        try? process.run()
+        process.waitUntilExit()
+    }
+}
+
 // Configure GitHub CLI authentication
 func configureGitHubCLI() {
     print("Configuring GitHub CLI...")
@@ -101,7 +125,6 @@ func configureGitHubCLI() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/bin/bash")
     let command = """
-    rm -rf \(repoPath)
     osascript -e 'tell application "Terminal" to do script "gh auth login -h \(domainURL) -p https"'
     """
     process.arguments = ["-c", command]
@@ -152,8 +175,8 @@ func main() {
         cloneRepository()
         print("✅ Environment setup completed!")
     } else {
-        print("⚠️  Git Repo is not found. Please reconfigure GitHub CLI and restart this program.")
-        print(repoPath)
+        print("⚠️  Repository not found. Please reconfigure GitHub CLI and restart this program.")
+        setupSSHKey()
         configureGitHubCLI()
     }
     
