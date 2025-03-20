@@ -170,7 +170,9 @@ func main() {
 
     let fileManager = FileManager.default
     if fileManager.fileExists(atPath: sshKeyPath) {
-        cloneRepository()
+        if !fileManager.fileExists(atPath: repoPath) {
+            cloneRepository()
+        }
         print("✅ Environment setup completed!")
     } else {
         print("⚠️  Repository not found. Please reconfigure GitHub CLI and restart this program.")
