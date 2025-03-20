@@ -8,7 +8,7 @@
 import Foundation
 
 // Define the required paths and commands
-let sshKeyPath = "\(NSHomeDirectory())/.ssh/id_ed25519.pub"
+let sshKeyPath = "\(NSHomeDirectory())/.ssh/id_ed25519"
 let repoPath = "\(NSHomeDirectory())/BVVConfigs"
 let repoURL = "git@hwtegit.apple.com:BVV/BVVConfigs.git"
 let domainURL = "hwtegit.apple.com"
@@ -109,7 +109,7 @@ func setupSSHKey() {
     
     let sshAddProcess = Process()
     sshAddProcess.executableURL = URL(fileURLWithPath: "/usr/bin/ssh-add")
-    sshAddProcess.arguments = [sshKeyPath.replacingOccurrences(of: ".pub", with: "")]
+    sshAddProcess.arguments = [sshKeyPath]
     try? process.run()
     process.waitUntilExit()
     
@@ -123,7 +123,7 @@ func configureGitHubCLI() {
     let process = Process()
     process.executableURL = URL(fileURLWithPath: "/bin/bash")
     let command = """
-    osascript -e 'tell application "Terminal" to do script "gh auth login -h \(domainURL) -p ssh'
+    osascript -e 'tell application "Terminal" to do script "gh auth login -h \(domainURL) -p ssh"'
     """
     process.arguments = ["-c", command]
     
@@ -169,7 +169,7 @@ func main() {
     }
 
     let fileManager = FileManager.default
-    if !fileManager.fileExists(atPath: repoPath) {
+    if fileManager.fileExists(atPath: sshKeyPath) {
         cloneRepository()
         print("✅ Environment setup completed!")
     } else {
